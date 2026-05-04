@@ -1,0 +1,16 @@
+# Override root gitignore: include data/ and CSV files for the case
+!data/
+!data/*.csv
+
+# Ignore generated output
+output/
+
+# Python
+__pycache__/
+*.pyc
+
+# Env
+.env
+.venv/
+
+output/
