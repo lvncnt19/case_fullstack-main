@@ -54,18 +54,56 @@ case_fullstack/
 ## Setup
 
 ```bash
-# 1. Configurer la clé API
+# 1. Installer Ollama (provider gratuit en local)
+# https://ollama.com/download
+# Puis télécharger un modèle
+ollama pull llama3.2
+
+# 2. Configurer l'environnement
 cp .env.example .env
-# Éditer .env avec ta clé API
 
-# 2. Ajouter des fichiers CSV dans data/
+# 3. Ajouter des fichiers CSV dans data/
 
-# 3. Lancer le CLI via Docker
+# 4. Lancer le CLI via Docker
 docker compose run --rm agent
 ```
 
+> Si tu veux utiliser Anthropic/OpenAI à la place, change `MODEL` et les variables de clé dans `.env`.
+
 > Le volume `data/` est monté dans le container — tu peux ajouter/modifier des CSV sans rebuild.
 > Les visualisations générées sont dans `output/`.
+
+---
+
+## MVP Web (FastAPI + React)
+
+Le repo inclut maintenant une MVP web avec streaming SSE :
+
+- Backend : `backend/app.py` (endpoint `POST /api/chat/stream`)
+- Frontend : `frontend/` (React + Vite)
+
+### Lancer le backend
+
+```bash
+docker compose up api
+```
+
+API disponible sur `http://localhost:8000`.
+
+### Lancer le frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend disponible sur `http://localhost:5173`.
+
+### Mode mock vs mode réel
+
+- **Mode mock** (par défaut dans l'UI) : fonctionne sans LLM, idéal pour développer l'UX.
+- **Mode réel** : décoche "Mode mock (sans LLM)" dans l'UI pour utiliser l'agent PydanticAI + ton provider.
 
 ---
 
