@@ -100,11 +100,6 @@ npm run dev
 
 Frontend disponible sur `http://localhost:5173`.
 
-### Mode mock vs mode réel
-
-- **Mode mock** (par défaut dans l'UI) : fonctionne sans LLM, idéal pour développer l'UX.
-- **Mode réel** : décoche "Mode mock (sans LLM)" dans l'UI pour utiliser l'agent PydanticAI + ton provider.
-
 ---
 
 ## Ce qui est attendu

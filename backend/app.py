@@ -38,7 +38,6 @@ SESSION_HISTORIES: dict[str, list[Any]] = {}
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1)
     session_id: str | None = None
-    mock: bool = True
 
 
 def load_datasets(data_dir: str = "data") -> tuple[dict[str, pd.DataFrame], str]:
@@ -80,100 +79,17 @@ def extract_saved_path(content: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-async def stream_mock(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None]:
-    session_id = req.session_id or str(uuid4())
-    yield sse_event("session", {"session_id": session_id, "run_id": run_id})
-    await asyncio.sleep(0.2)
-
-    thinking = [
-        "Je dois identifier la table la plus pertinente pour repondre.",
-        "Je calcule ensuite une aggregation simple pour obtenir un insight lisible.",
-        "Je prepare enfin une visualisation claire pour l'utilisateur.",
-    ]
-    for chunk in thinking:
-        yield sse_event("thinking_delta", {"run_id": run_id, "delta": chunk + "\n"})
-        await asyncio.sleep(0.25)
-
-    args = {
-        "sql": "SELECT Contract, COUNT(*) AS clients FROM telcoclient GROUP BY Contract ORDER BY clients DESC",
-        "description": "Compter le nombre de clients par type de contrat",
-    }
-    yield sse_event("tool_call", {"run_id": run_id, "tool_name": "query_data", "args": args})
-    await asyncio.sleep(0.2)
-    yield sse_event(
-        "tool_result",
-        {
-            "run_id": run_id,
-            "tool_name": "query_data",
-            "content": "Query executed successfully. Result: 3 rows x 2 columns",
-        },
-    )
-    await asyncio.sleep(0.2)
-    yield sse_event(
-        "tool_call",
-        {
-            "run_id": run_id,
-            "tool_name": "visualize",
-            "args": {
-                "title": "Distribution des contrats",
-                "result_type": "figure",
-                "description": "Comparer les volumes de clients par contrat",
-            },
-        },
-    )
-    await asyncio.sleep(0.2)
-    yield sse_event(
-        "artifact",
-        {
-            "run_id": run_id,
-            "artifact_type": "figure_json",
-            "title": "Distribution des contrats",
-            "figure": {
-                "data": [
-                    {
-                        "type": "bar",
-                        "x": ["Month-to-month", "Two year", "One year"],
-                        "y": [3875, 1695, 1473],
-                    }
-                ],
-                "layout": {"template": "plotly_white", "xaxis": {"title": "Contract"}, "yaxis": {"title": "Clients"}},
-            },
-        },
-    )
-    await asyncio.sleep(0.2)
-
-    yield sse_event(
-        "artifact",
-        {
-            "run_id": run_id,
-            "artifact_type": "table",
-            "title": "Clients par contrat",
-            "columns": ["Contract", "clients"],
-            "rows": [
-                ["Month-to-month", 3875],
-                ["Two year", 1695],
-                ["One year", 1473],
-            ],
-        },
-    )
-    await asyncio.sleep(0.2)
-
-    yield sse_event(
-        "final",
-        {
-            "run_id": run_id,
-            "text": "La majorite des clients sont en contrat month-to-month, ce qui indique un risque de churn plus eleve. Une strategie de migration vers des contrats annuels pourrait ameliorer la retention.",
-        },
-    )
-    yield sse_event("done", {"run_id": run_id})
-
-
 async def stream_real(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None]:
+    from pydantic_ai import AgentRunResultEvent
     from pydantic_ai.messages import (
-        ModelRequest,
-        ModelResponse,
+        FunctionToolCallEvent,
+        FunctionToolResultEvent,
+        PartDeltaEvent,
+        PartStartEvent,
         TextPart,
-        ToolCallPart,
+        TextPartDelta,
+        ThinkingPart,
+        ThinkingPartDelta,
         ToolReturnPart,
     )
 
@@ -191,86 +107,109 @@ async def stream_real(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None
     history = SESSION_HISTORIES.get(session_id, [])
 
     try:
-        last_tool_name = ""
-        result = await agent.run(
+        final_text = ""
+
+        async for event in agent.run_stream_events(
             req.question,
             deps=context,
             message_history=history or None,
-        )
-        all_msgs = result.all_messages()
-        new_msgs = all_msgs[len(history) :]
+        ):
+            if isinstance(event, PartStartEvent):
+                if isinstance(event.part, ThinkingPart) and event.part.content:
+                    yield sse_event(
+                        "thinking_delta",
+                        {"run_id": run_id, "delta": event.part.content},
+                    )
+                    await asyncio.sleep(0.05)
+                    continue
 
-        for msg in new_msgs:
-            if isinstance(msg, ModelResponse):
-                for part in msg.parts:
-                    if isinstance(part, TextPart) and part.content.strip():
-                        thinking, _ = parse_thinking(part.content)
-                        if thinking:
-                            yield sse_event(
-                                "thinking_delta",
-                                {"run_id": run_id, "delta": thinking + "\n"},
-                            )
-                            await asyncio.sleep(0.05)
-                    elif isinstance(part, ToolCallPart):
-                        last_tool_name = part.tool_name
-                        args = (
-                            part.args
-                            if isinstance(part.args, dict)
-                            else json.loads(part.args)
-                            if isinstance(part.args, str)
-                            else {}
-                        )
-                        yield sse_event(
-                            "tool_call",
-                            {
-                                "run_id": run_id,
-                                "tool_name": part.tool_name,
-                                "args": args,
-                            },
-                        )
-                        await asyncio.sleep(0.05)
+                if isinstance(event.part, TextPart) and event.part.content:
+                    final_text += event.part.content
+                    continue
 
-            elif isinstance(msg, ModelRequest):
-                for part in msg.parts:
-                    if isinstance(part, ToolReturnPart):
-                        content = str(part.content)
-                        yield sse_event(
-                            "tool_result",
-                            {
-                                "run_id": run_id,
-                                "tool_name": last_tool_name or "tool_result",
-                                "content": content[:2000],
-                            },
-                        )
-                        saved_path = extract_saved_path(content)
-                        if saved_path:
-                            artifact_type = "figure" if saved_path.endswith(".html") else "table"
-                            artifact_payload: dict[str, Any] = {
-                                "run_id": run_id,
-                                "artifact_type": artifact_type,
-                                "path": f"/{saved_path.replace(os.sep, '/')}",
-                                "title": Path(saved_path).stem.replace("_", " ").title(),
-                            }
-                            # If the tool generated a CSV table, include a preview directly
-                            # in the stream so the frontend can render it immediately.
-                            if artifact_type == "table":
-                                csv_path = Path(saved_path)
-                                if csv_path.exists():
-                                    try:
-                                        table_df = pd.read_csv(csv_path)
-                                        artifact_payload["columns"] = table_df.columns.tolist()
-                                        artifact_payload["rows"] = table_df.head(25).values.tolist()
-                                    except Exception:
-                                        pass
-                            yield sse_event(
-                                "artifact",
-                                artifact_payload,
-                            )
-                        await asyncio.sleep(0.05)
+                continue
 
-        _, answer = parse_thinking(result.output)
+            if isinstance(event, PartDeltaEvent):
+                if isinstance(event.delta, ThinkingPartDelta) and event.delta.content_delta:
+                    yield sse_event(
+                        "thinking_delta",
+                        {"run_id": run_id, "delta": event.delta.content_delta},
+                    )
+                    await asyncio.sleep(0.05)
+                    continue
+
+                if isinstance(event.delta, TextPartDelta) and event.delta.content_delta:
+                    final_text += event.delta.content_delta
+                    continue
+
+                continue
+
+            if isinstance(event, FunctionToolCallEvent):
+                part = event.part
+                args = (
+                    part.args
+                    if isinstance(part.args, dict)
+                    else json.loads(part.args)
+                    if isinstance(part.args, str)
+                    else {}
+                )
+                yield sse_event(
+                    "tool_call",
+                    {
+                        "run_id": run_id,
+                        "tool_name": part.tool_name,
+                        "args": args,
+                    },
+                )
+                await asyncio.sleep(0.05)
+                continue
+
+            if isinstance(event, FunctionToolResultEvent):
+                result_part = event.result
+                if isinstance(result_part, ToolReturnPart):
+                    content = str(result_part.content)
+                    tool_name = result_part.tool_name or "tool_result"
+                    yield sse_event(
+                        "tool_result",
+                        {
+                            "run_id": run_id,
+                            "tool_name": tool_name,
+                            "content": content[:2000],
+                        },
+                    )
+                    saved_path = extract_saved_path(content)
+                    if saved_path:
+                        artifact_type = "figure" if saved_path.endswith(".html") else "table"
+                        artifact_payload: dict[str, Any] = {
+                            "run_id": run_id,
+                            "artifact_type": artifact_type,
+                            "path": f"/{saved_path.replace(os.sep, '/')}",
+                            "title": Path(saved_path).stem.replace("_", " ").title(),
+                        }
+                        # If the tool generated a CSV table, include a preview directly
+                        # in the stream so the frontend can render it immediately.
+                        if artifact_type == "table":
+                            csv_path = Path(saved_path)
+                            if csv_path.exists():
+                                try:
+                                    table_df = pd.read_csv(csv_path)
+                                    artifact_payload["columns"] = table_df.columns.tolist()
+                                    artifact_payload["rows"] = table_df.head(25).values.tolist()
+                                except Exception:
+                                    pass
+                        yield sse_event("artifact", artifact_payload)
+                    await asyncio.sleep(0.05)
+                continue
+
+            if isinstance(event, AgentRunResultEvent):
+                result = event.result
+                all_msgs = result.all_messages()
+                SESSION_HISTORIES[session_id] = all_msgs
+                if not final_text:
+                    final_text = str(result.output or "")
+
+        _, answer = parse_thinking(final_text)
         yield sse_event("final", {"run_id": run_id, "text": answer})
-        SESSION_HISTORIES[session_id] = all_msgs
     except Exception as exc:
         yield sse_event("error", {"run_id": run_id, "message": str(exc)})
     finally:
@@ -285,5 +224,5 @@ async def health() -> dict[str, str]:
 @app.post("/api/chat/stream")
 async def chat_stream(req: ChatRequest) -> StreamingResponse:
     run_id = str(uuid4())
-    generator = stream_mock(req, run_id) if req.mock else stream_real(req, run_id)
+    generator = stream_real(req, run_id)
     return StreamingResponse(generator, media_type="text/event-stream")

@@ -48,7 +48,6 @@ export default function App() {
   const [finalAnswer, setFinalAnswer] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [useMock, setUseMock] = useState(true);
 
   const resetConversationState = () => {
     setThinking("");
@@ -76,8 +75,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
-          session_id: sessionId,
-          mock: useMock
+          session_id: sessionId
         })
       });
 
@@ -147,14 +145,6 @@ export default function App() {
           rows={3}
         />
         <div className="controls">
-          <label>
-            <input
-              type="checkbox"
-              checked={useMock}
-              onChange={(e) => setUseMock(e.target.checked)}
-            />
-            Mode mock (sans LLM)
-          </label>
           <button type="submit" disabled={loading}>
             {loading ? "Streaming..." : "Envoyer"}
           </button>
