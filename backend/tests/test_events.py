@@ -4,6 +4,7 @@ from backend.services.events import (
     build_artifact_payload,
     extract_saved_path,
     parse_thinking,
+    strip_tool_tags,
 )
 
 
@@ -30,3 +31,8 @@ def test_build_artifact_payload_for_table_includes_preview(tmp_path: Path) -> No
     assert payload["run_id"] == "run-1"
     assert payload["columns"] == ["col_a", "col_b"]
     assert payload["rows"] == [[1, 2], [3, 4]]
+
+
+def test_strip_tool_tags_removes_fake_tool_blocks() -> None:
+    content = 'Avant\n<tool>query_data(sql="select 1")</tool>\nApres'
+    assert strip_tool_tags(content) == "Avant\nApres"

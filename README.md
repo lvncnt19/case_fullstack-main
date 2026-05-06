@@ -144,3 +144,26 @@ Frontend disponible sur `http://localhost:5173`.
 - [Plotly.js — React integration](https://plotly.com/javascript/react/)
 - [FastAPI — Streaming Response](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse)
 - [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
+
+---
+
+## Demo rapide (2-3 minutes)
+
+Exemples de prompts a preparer pour une soutenance :
+
+1. `Resume rapidement le dataset sales et les colonnes disponibles.`
+2. `Sur carpriceprediction, fais un bar chart du prix moyen par marque (top 10).`
+3. `Filtre sur BMW et affiche un tableau des modeles et prix.`
+
+Points a montrer dans l'UI :
+
+- Statut de run (`Idle`, `Streaming`, `Tool Running`, `Done`, `Error`)
+- Thinking en streaming
+- Tool calls / tool results
+- Artefacts (tableaux + graphiques)
+
+## Limites connues
+
+- Les petits modeles peuvent parfois simuler des faux `<tool>...</tool>` dans le texte.
+- Les providers gratuits peuvent avoir des limitations de debit et de disponibilite.
+- Les datasets tres volumineux peuvent augmenter le temps de reponse.

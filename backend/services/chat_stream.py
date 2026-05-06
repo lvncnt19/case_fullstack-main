@@ -3,6 +3,7 @@ import json
 from typing import Any, AsyncGenerator
 from uuid import uuid4
 
+from anyio import BrokenResourceError
 from agent.agent import create_agent
 from agent.context import AgentContext
 from pydantic_ai import AgentRunResultEvent
@@ -24,6 +25,7 @@ from backend.services.events import (
     build_artifact_payload,
     extract_saved_path,
     parse_thinking,
+    strip_tool_tags,
     sse_event,
 )
 
@@ -35,6 +37,7 @@ def create_run_id() -> str:
 
 
 async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None]:
+    # On recharge les CSV au debut de chaque run pour rester coherent avec l'etat disque.
     datasets, dataset_info = load_datasets()
     session_id = req.session_id or str(uuid4())
     yield sse_event("session", {"session_id": session_id, "run_id": run_id})
@@ -48,6 +51,8 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
     context = AgentContext(datasets=datasets, dataset_info=dataset_info)
     history = SESSION_HISTORIES.get(session_id, [])
 
+    client_disconnected = False
+
     try:
         final_text = ""
 
@@ -58,6 +63,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
         ):
             if isinstance(event, PartStartEvent):
                 if isinstance(event.part, ThinkingPart) and event.part.content:
+                    # Le thinking est envoye en delta pour un affichage progressif cote UI.
                     yield sse_event("thinking_delta", {"run_id": run_id, "delta": event.part.content})
                     await asyncio.sleep(0.05)
                     continue
@@ -81,6 +87,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
 
             if isinstance(event, FunctionToolCallEvent):
                 part = event.part
+                # Les args peuvent arriver en dict ou en JSON string selon le provider.
                 args = (
                     part.args
                     if isinstance(part.args, dict)
@@ -109,6 +116,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
 
                 saved_path = extract_saved_path(content)
                 if saved_path:
+                    # On convertit les outputs outils en artefacts rendables directement.
                     yield sse_event("artifact", build_artifact_payload(saved_path, run_id))
 
                 await asyncio.sleep(0.05)
@@ -121,8 +129,14 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
                     final_text = str(result.output or "")
 
         _, answer = parse_thinking(final_text)
+        answer = strip_tool_tags(answer)
         yield sse_event("final", {"run_id": run_id, "text": answer})
+    except (asyncio.CancelledError, BrokenResourceError):
+        # Deconnexion client pendant le stream: on coupe sans logger d'erreur applicative.
+        client_disconnected = True
+        return
     except Exception as exc:
         yield sse_event("error", {"run_id": run_id, "message": str(exc)})
     finally:
-        yield sse_event("done", {"run_id": run_id})
+        if not client_disconnected:
+            yield sse_event("done", {"run_id": run_id})
