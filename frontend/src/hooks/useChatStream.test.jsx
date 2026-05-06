@@ -54,6 +54,7 @@ describe("useChatStream", () => {
     expect(result.current.artifacts).toHaveLength(1);
     expect(result.current.finalAnswer).toBe("Done");
     expect(result.current.chatHistory).toHaveLength(1);
+    expect(result.current.runStatus).toBe("done");
     expect(result.current.loading).toBe(false);
   });
 
@@ -70,6 +71,7 @@ describe("useChatStream", () => {
     });
 
     expect(result.current.error).toBe("Streaming API unavailable");
+    expect(result.current.runStatus).toBe("error");
     expect(result.current.loading).toBe(false);
   });
 });

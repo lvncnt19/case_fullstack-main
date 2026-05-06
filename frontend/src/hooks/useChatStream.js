@@ -11,6 +11,7 @@ const EMPTY_STATE = {
 };
 
 export function useChatStream() {
+  const [runStatus, setRunStatus] = useState("idle");
   const [sessionId, setSessionId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [thinking, setThinking] = useState(EMPTY_STATE.thinking);
@@ -37,9 +38,11 @@ export function useChatStream() {
     let streamedAnswer = "";
     let streamedError = "";
     resetCurrentRun();
+    setRunStatus("streaming");
     setLoading(true);
 
     try {
+      // Le backend stream en SSE: on traite chaque evenement des reception.
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,35 +60,43 @@ export function useChatStream() {
       await parseSseChunks(reader, (eventType, payload) => {
         if (eventType === "session") {
           if (payload.session_id) setSessionId(payload.session_id);
+          setRunStatus("streaming");
           return;
         }
         if (eventType === "thinking_delta") {
           setThinking((prev) => prev + (payload.delta || ""));
+          setRunStatus("streaming");
           return;
         }
         if (eventType === "tool_call") {
           setToolCalls((prev) => [...prev, payload]);
+          setRunStatus("tool_running");
           return;
         }
         if (eventType === "tool_result") {
           setToolResults((prev) => [...prev, payload]);
+          setRunStatus("streaming");
           return;
         }
         if (eventType === "artifact") {
           setArtifacts((prev) => [...prev, payload]);
+          setRunStatus("streaming");
           return;
         }
         if (eventType === "final") {
           streamedAnswer = payload.text || "";
           setFinalAnswer(streamedAnswer);
+          setRunStatus("streaming");
           return;
         }
         if (eventType === "error") {
           streamedError = payload.message || "Unknown backend error";
           setError(streamedError);
+          setRunStatus("error");
           return;
         }
         if (eventType === "done") {
+          // On fige l'echange courant dans l'historique une fois le run termine.
           setChatHistory((prev) => [
             ...prev,
             {
@@ -94,10 +105,12 @@ export function useChatStream() {
               error: streamedError || ""
             }
           ]);
+          if (!streamedError) setRunStatus("done");
         }
       });
     } catch (err) {
       setError(err.message);
+      setRunStatus("error");
     } finally {
       setLoading(false);
     }
@@ -106,6 +119,7 @@ export function useChatStream() {
   return {
     ask,
     loading,
+    runStatus,
     chatHistory,
     thinking,
     toolCalls,

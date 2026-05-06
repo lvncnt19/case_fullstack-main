@@ -1,7 +1,8 @@
+import asyncio
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -31,7 +32,16 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/api/chat/stream")
-async def chat_stream(req: ChatRequest) -> StreamingResponse:
+async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
     run_id = create_run_id()
-    generator = stream_chat_events(req, run_id)
-    return StreamingResponse(generator, media_type="text/event-stream")
+
+    async def stream_with_disconnect_guard() -> object:
+        try:
+            async for event in stream_chat_events(req, run_id):
+                if await request.is_disconnected():
+                    break
+                yield event
+        except asyncio.CancelledError:
+            return
+
+    return StreamingResponse(stream_with_disconnect_guard(), media_type="text/event-stream")
