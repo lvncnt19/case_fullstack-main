@@ -54,33 +54,17 @@ case_fullstack/
 ## Setup
 
 ```bash
-# 1. Installer Ollama (provider gratuit en local)
-# https://ollama.com/download
-# Puis télécharger un modèle
-ollama pull llama3.2
-
-# 2. Configurer l'environnement
+# 1. Configurer la clé API
 cp .env.example .env
 
-# 3. Ajouter des fichiers CSV dans data/
+# 2. Ajouter des fichiers CSV dans data/
 
-# 4. Lancer le CLI via Docker
+# 3. Lancer le CLI via Docker
 docker compose run --rm agent
 ```
 
-> Si tu veux utiliser Anthropic/OpenAI à la place, change `MODEL` et les variables de clé dans `.env`.
-
 > Le volume `data/` est monté dans le container — tu peux ajouter/modifier des CSV sans rebuild.
 > Les visualisations générées sont dans `output/`.
-
----
-
-## MVP Web (FastAPI + React)
-
-Le repo inclut maintenant une MVP web avec streaming SSE :
-
-- Backend : `backend/app.py` (endpoint `POST /api/chat/stream`)
-- Frontend : `frontend/` (React + Vite)
 
 ### Lancer le backend
 
@@ -102,6 +86,19 @@ Frontend disponible sur `http://localhost:5173`.
 
 ---
 
+## CI (GitHub Actions)
+
+Une pipeline CI simple est incluse dans `.github/workflows/ci.yml`.
+
+Elle s'exécute sur `push` et `pull_request` vers `master` avec 2 jobs en parallèle :
+
+- Backend : installation Python + `pytest backend/tests -q`
+- Frontend : `npm ci`, `npm run test`, puis `npm run build`
+
+Le workflow utilise le cache des dépendances (`pip` et `npm`) et annule automatiquement les exécutions obsolètes sur la même branche.
+
+---
+
 ## Ce qui est attendu
 
 ### Minimum requis
@@ -119,7 +116,7 @@ Frontend disponible sur `http://localhost:5173`.
 
 ## Stack technique
 
-- **Backend** : FastAPI 
+- **Backend** : FastAPI
 - **Frontend** : Libre React
 - **Streaming** : SSE ou WebSocket (à ton choix)
 
@@ -143,27 +140,3 @@ Frontend disponible sur `http://localhost:5173`.
 - [PydanticAI — Tools](https://ai.pydantic.dev/tools/)
 - [Plotly.js — React integration](https://plotly.com/javascript/react/)
 - [FastAPI — Streaming Response](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse)
-- [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
-
----
-
-## Demo rapide (2-3 minutes)
-
-Exemples de prompts a preparer pour une soutenance :
-
-1. `Resume rapidement le dataset sales et les colonnes disponibles.`
-2. `Sur carpriceprediction, fais un bar chart du prix moyen par marque (top 10).`
-3. `Filtre sur BMW et affiche un tableau des modeles et prix.`
-
-Points a montrer dans l'UI :
-
-- Statut de run (`Idle`, `Streaming`, `Tool Running`, `Done`, `Error`)
-- Thinking en streaming
-- Tool calls / tool results
-- Artefacts (tableaux + graphiques)
-
-## Limites connues
-
-- Les petits modeles peuvent parfois simuler des faux `<tool>...</tool>` dans le texte.
-- Les providers gratuits peuvent avoir des limitations de debit et de disponibilite.
-- Les datasets tres volumineux peuvent augmenter le temps de reponse.
