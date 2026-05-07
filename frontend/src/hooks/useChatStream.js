@@ -14,6 +14,7 @@ export function useChatStream() {
   const [runStatus, setRunStatus] = useState("idle");
   const [sessionId, setSessionId] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
+  const [lastQuestion, setLastQuestion] = useState("");
   const [thinking, setThinking] = useState(EMPTY_STATE.thinking);
   const [toolCalls, setToolCalls] = useState(EMPTY_STATE.toolCalls);
   const [toolResults, setToolResults] = useState(EMPTY_STATE.toolResults);
@@ -31,10 +32,24 @@ export function useChatStream() {
     setError(EMPTY_STATE.error);
   };
 
+  const normalizeUiError = (message) => {
+    const raw = (message || "").trim();
+    const lower = raw.toLowerCase();
+    if (
+      lower.includes("connection error") ||
+      lower.includes("incomplete chunked read") ||
+      lower.includes("provider temporarily unreachable")
+    ) {
+      return "Connexion instable au provider. Reessayez dans quelques secondes.";
+    }
+    return raw || "Erreur inattendue pendant le streaming.";
+  };
+
   const ask = async (question) => {
     if (!question.trim() || loading) return;
 
     const askedQuestion = question.trim();
+    setLastQuestion(askedQuestion);
     let streamedAnswer = "";
     let streamedError = "";
     resetCurrentRun();
@@ -90,7 +105,7 @@ export function useChatStream() {
           return;
         }
         if (eventType === "error") {
-          streamedError = payload.message || "Unknown backend error";
+          streamedError = normalizeUiError(payload.message);
           setError(streamedError);
           setRunStatus("error");
           return;
@@ -109,15 +124,31 @@ export function useChatStream() {
         }
       });
     } catch (err) {
-      setError(err.message);
+      const uiError = normalizeUiError(err.message);
+      setError(uiError);
       setRunStatus("error");
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          question: askedQuestion,
+          answer: streamedAnswer || "(aucune reponse)",
+          error: uiError
+        }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const retryLastQuestion = async () => {
+    if (!lastQuestion || loading) return;
+    await ask(lastQuestion);
+  };
+
   return {
     ask,
+    retryLastQuestion,
+    canRetry: Boolean(lastQuestion) && !loading,
     loading,
     runStatus,
     chatHistory,
@@ -126,6 +157,7 @@ export function useChatStream() {
     toolResults,
     artifacts,
     finalAnswer,
-    error
+    error,
+    lastQuestion
   };
 }

@@ -183,12 +183,22 @@ export function FinalAnswerSection({ finalAnswer }) {
   );
 }
 
-export function ErrorSection({ error }) {
+export function ErrorSection({ error, onRetry, canRetry }) {
   if (!error) return null;
 
   return (
     <SectionCard title="Erreur run">
-      <p className="rounded-xl border border-rose-800/60 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</p>
+      <div className="space-y-3">
+        <p className="rounded-xl border border-rose-800/60 bg-rose-950/40 p-3 text-sm text-rose-200">{error}</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={!canRetry}
+          className="inline-flex items-center justify-center rounded-lg border border-rose-700 bg-rose-900/40 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-900/70 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Reessayer la derniere question
+        </button>
+      </div>
     </SectionCard>
   );
 }
