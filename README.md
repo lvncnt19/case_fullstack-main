@@ -131,7 +131,9 @@ cp .env.example .env
 ```
 
 Variables minimales à renseigner :
-- `OPENAI_API_KEY`
+- `MODEL`
+- `ANTHROPIC_API_KEY`
+- `CORS_ORIGINS`
 - `API_AUTH_TOKEN`
 
 ```bash
@@ -149,20 +151,6 @@ npm run dev
 ```
 
 Frontend disponible sur `http://localhost:5173`.
-
-### Auth minimale (Bearer token)
-
-Le backend protège `POST /api/chat/stream` avec un token statique :
-- `API_AUTH_TOKEN` côté backend
-
-### CORS configurable
-
-Les origines autorisées sont configurées via `CORS_ORIGINS` (liste séparée par des virgules).
-Exemple :
-
-```bash
-CORS_ORIGINS=http://localhost:5173,https://mon-frontend.example.com
-```
 
 ### Architecture
 
