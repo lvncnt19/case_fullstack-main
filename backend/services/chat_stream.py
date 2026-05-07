@@ -61,7 +61,7 @@ def normalize_stream_error(exc: Exception) -> str:
 
 
 async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None]:
-    # On recharge les CSV au debut de chaque run pour rester coherent avec l'etat disque.
+    # On recharge les CSV au début de chaque run pour rester cohérent avec l'état disque.
     datasets, dataset_info = load_datasets()
     session_id = req.session_id or str(uuid4())
     yield sse_event("session", {"session_id": session_id, "run_id": run_id})
@@ -87,7 +87,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
         ):
             if isinstance(event, PartStartEvent):
                 if isinstance(event.part, ThinkingPart) and event.part.content:
-                    # Le thinking est envoye en delta pour un affichage progressif cote UI.
+                    # Le thinking est envoyé en delta pour un affichage progressif côté UI.
                     yield sse_event("thinking_delta", {"run_id": run_id, "delta": event.part.content})
                     await asyncio.sleep(0.05)
                     continue
@@ -162,7 +162,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
         answer = strip_tool_tags(answer)
         yield sse_event("final", {"run_id": run_id, "text": answer})
     except (asyncio.CancelledError, BrokenResourceError):
-        # Deconnexion client pendant le stream: on coupe sans logger d'erreur applicative.
+        # Déconnexion client pendant le stream: on coupe sans logger d'erreur applicative.
         client_disconnected = True
         return
     except Exception as exc:

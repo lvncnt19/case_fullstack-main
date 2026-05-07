@@ -124,13 +124,13 @@ docker compose run --rm agent
 
 ### Lancement de l'application
 
-Configurer d'abord les variables dans le fichier `.env` a la racine du repo (un seul fichier pour backend + frontend) :
+Configurer d'abord les variables dans le fichier `.env` à la racine du repo (un seul fichier pour backend + frontend) :
 
 ```bash
 cp .env.example .env
 ```
 
-Variables minimales a renseigner :
+Variables minimales à renseigner :
 - `OPENAI_API_KEY`
 - `API_AUTH_TOKEN`
 

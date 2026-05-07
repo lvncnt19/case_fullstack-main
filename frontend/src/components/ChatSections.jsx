@@ -1,7 +1,7 @@
 import Plot from "react-plotly.js";
 
 function SectionCard({ title, subtitle, children }) {
-  // Bloc visuel reutilisable pour garder une UI homogene entre sections.
+  // Bloc visuel réutilisable pour garder une UI homogène entre sections.
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-[0_0_25px_rgba(15,23,42,0.35)]">
       <div className="mb-3">
@@ -15,11 +15,11 @@ function SectionCard({ title, subtitle, children }) {
 
 export function ChatHistorySection({ chatHistory }) {
   return (
-    <SectionCard title="Historique rapide" subtitle="Derniers echanges utilisateur / agent">
+    <SectionCard title="Historique rapide" subtitle="Derniers échanges utilisateur / agent">
       <div className="max-h-96 space-y-3 overflow-auto pr-1">
         {chatHistory.length === 0 ? (
           <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm text-slate-400">
-            Aucun echange pour le moment.
+            Aucun échange pour le moment.
           </p>
         ) : (
           chatHistory.map((item, idx) => (
@@ -52,7 +52,7 @@ export function ThinkingSection({ thinking }) {
 
 export function ToolCallsSection({ toolCalls }) {
   return (
-    <SectionCard title="Tool Calls" subtitle="Invocations detectees pendant le run">
+    <SectionCard title="Tool Calls" subtitle="Invocations détectées pendant le run">
       <div className="max-h-96 space-y-3 overflow-auto pr-1">
         {toolCalls.length === 0 ? (
           <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm text-slate-400">
@@ -77,7 +77,7 @@ export function ToolResultsSection({ toolResults }) {
       <div className="max-h-96 space-y-3 overflow-auto pr-1">
         {toolResults.length === 0 ? (
           <p className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm text-slate-400">
-            Pas de resultat outil.
+            Pas de résultat outil.
           </p>
         ) : (
           toolResults.map((res, idx) => (
@@ -85,7 +85,7 @@ export function ToolResultsSection({ toolResults }) {
               <strong className="text-sm text-emerald-300">{res.tool_name}</strong>
               {res.truncated ? (
                 <p className="mt-2 rounded border border-amber-700/70 bg-amber-950/30 px-2 py-1 text-xs text-amber-200">
-                  Resultat tronque (limite backend a 2000 caracteres).
+                  Résultat tronqué (limite backend à 2000 caractères).
                 </p>
               ) : null}
               <pre className="mt-2 overflow-auto text-xs text-slate-300">{res.content}</pre>
@@ -107,7 +107,7 @@ export function ArtifactsSection({ artifacts }) {
           </p>
         )}
         {artifacts.map((artifact, idx) => {
-          // Certains tools renvoient directement une figure Plotly serialisee.
+          // Certains tools renvoient directement une figure Plotly sérialisée.
           if (artifact.artifact_type === "figure_json" && artifact.figure) {
             return (
               <article key={`artifact-figure-${idx}`} className="rounded-xl border border-slate-800 bg-slate-950 p-3">
@@ -163,8 +163,8 @@ export function ArtifactsSection({ artifacts }) {
                     </table>
                   </div>
                 ) : (
-                  // Fallback si le backend n'a renvoye que le chemin du CSV.
-                  <p className="text-sm text-slate-400">Tableau genere (voir output).</p>
+                  // Fallback si le backend n'a renvoyé que le chemin du CSV.
+                  <p className="text-sm text-slate-400">Tableau généré (voir output).</p>
                 )}
               </article>
             );
@@ -180,7 +180,7 @@ export function ArtifactsSection({ artifacts }) {
 
 export function FinalAnswerSection({ finalAnswer }) {
   return (
-    <SectionCard title="Reponse finale" subtitle="Sortie agent nettoyee en fin de run">
+    <SectionCard title="Réponse finale" subtitle="Sortie agent nettoyée en fin de run">
       <p className="whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm leading-relaxed text-slate-100">
         {finalAnswer || "En attente..."}
       </p>
@@ -201,7 +201,7 @@ export function ErrorSection({ error, onRetry, canRetry }) {
           disabled={!canRetry}
           className="inline-flex items-center justify-center rounded-lg border border-rose-700 bg-rose-900/40 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-900/70 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Reessayer la derniere question
+          Réessayer la dernière question
         </button>
       </div>
     </SectionCard>

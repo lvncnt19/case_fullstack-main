@@ -42,7 +42,7 @@ export function useChatStream() {
       lower.includes("incomplete chunked read") ||
       lower.includes("provider temporarily unreachable")
     ) {
-      return "Connexion instable au provider. Reessayez dans quelques secondes.";
+      return "Connexion instable au provider. Réessayez dans quelques secondes.";
     }
     return raw || "Erreur inattendue pendant le streaming.";
   };
@@ -59,7 +59,7 @@ export function useChatStream() {
     setLoading(true);
 
     try {
-      // Le backend stream en SSE: on traite chaque evenement des reception.
+      // Le backend stream en SSE: on traite chaque événement dès réception.
       const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: {
@@ -116,12 +116,12 @@ export function useChatStream() {
           return;
         }
         if (eventType === "done") {
-          // On fige l'echange courant dans l'historique une fois le run termine.
+          // On fige l'échange courant dans l'historique une fois le run terminé.
           setChatHistory((prev) => [
             ...prev,
             {
               question: askedQuestion,
-              answer: streamedAnswer || "(aucune reponse)",
+              answer: streamedAnswer || "(aucune réponse)",
               error: streamedError || ""
             }
           ]);
@@ -136,7 +136,7 @@ export function useChatStream() {
         ...prev,
         {
           question: askedQuestion,
-          answer: streamedAnswer || "(aucune reponse)",
+          answer: streamedAnswer || "(aucune réponse)",
           error: uiError
         }
       ]);

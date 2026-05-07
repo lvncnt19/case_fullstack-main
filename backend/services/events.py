@@ -8,7 +8,7 @@ import pandas as pd
 
 
 def parse_thinking(text: str) -> tuple[str, str]:
-    # On isole le raisonnement interne pour ne pas le melanger a la reponse finale.
+    # On isole le raisonnement interne pour ne pas le mélanger à la réponse finale.
     pattern = re.compile(r"<thinking>(.*?)</thinking>", re.DOTALL)
     thinking_parts = pattern.findall(text)
     thinking = "\n".join(t.strip() for t in thinking_parts if t.strip())
@@ -17,8 +17,8 @@ def parse_thinking(text: str) -> tuple[str, str]:
 
 
 def strip_tool_tags(text: str) -> str:
-    # Certains petits modeles "simulent" des appels outils dans le texte.
-    # On les retire pour garder une reponse finale propre cote utilisateur.
+    # Certains petits modèles "simulent" des appels outils dans le texte.
+    # On les retire pour garder une réponse finale propre côté utilisateur.
     clean_text = re.sub(r"<tool>.*?</tool>", "", text, flags=re.DOTALL)
     clean_text = re.sub(r"\n\s*\n+", "\n", clean_text)
     return clean_text.strip()
@@ -51,7 +51,7 @@ def build_artifact_payload(saved_path: str, run_id: str) -> dict[str, Any]:
 
     try:
         table_df = pd.read_csv(csv_path)
-        # Preview volontairement limitee pour eviter de surcharger le flux SSE.
+        # Preview volontairement limitée pour éviter de surcharger le flux SSE.
         payload["columns"] = table_df.columns.tolist()
         payload["rows"] = table_df.head(25).values.tolist()
     except Exception:

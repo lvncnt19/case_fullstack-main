@@ -56,7 +56,7 @@ export default function App() {
           </div>
           <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Case Fullstack</h1>
           <p className="mt-2 text-sm text-slate-300">
-            Pose une question, observe le raisonnement, les outils appelés et les artefacts en temps reel.
+            Pose une question, observe le raisonnement, les outils appelés et les artefacts en temps réel.
           </p>
         </header>
 

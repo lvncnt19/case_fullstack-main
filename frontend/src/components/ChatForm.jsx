@@ -25,7 +25,7 @@ export default function ChatForm({ onAsk, loading }) {
         className="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-400">Astuce: demande un tableau puis un graphique pour tester les tools.</p>
+        <p className="text-xs text-slate-400">Astuce : demande un tableau puis un graphique pour tester les tools.</p>
         <button
           type="submit"
           disabled={loading}
