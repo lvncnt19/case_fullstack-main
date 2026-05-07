@@ -86,7 +86,7 @@ docker compose run --rm agent
 
 ## Stack technique
 
-- **Backend** : FastAPI 
+- **Backend** : FastAPI
 - **Frontend** : Libre React
 - **Streaming** : SSE ou WebSocket (à ton choix)
 
@@ -111,3 +111,93 @@ docker compose run --rm agent
 - [Plotly.js — React integration](https://plotly.com/javascript/react/)
 - [FastAPI — Streaming Response](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse)
 - [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
+
+---
+
+## Mon implémentation
+
+### Stack utilisée
+
+- Backend : FastAPI + SSE
+- Frontend : React + Vite
+- Agent : PydanticAI + DuckDB + Plotly
+
+### Lancement de l'application
+
+```bash
+# Backend
+docker compose up api
+```
+
+API disponible sur `http://localhost:8000`.
+
+```bash
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend disponible sur `http://localhost:5173`.
+
+### Architecture
+
+```text
+case_fullstack/
+├── agent/
+│   ├── agent.py
+│   ├── context.py
+│   ├── prompt.py
+│   └── tools/
+│       ├── query_data.py
+│       └── visualize.py
+├── backend/
+│   ├── app.py
+│   ├── schemas.py
+│   ├── services/
+│   │   ├── chat_stream.py
+│   │   ├── datasets.py
+│   │   └── events.py
+│   └── tests/
+│       ├── test_datasets.py
+│       └── test_events.py
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── lib/
+│   ├── package.json
+│   └── vite.config.js
+├── data/
+├── output/
+├── .github/workflows/ci.yml
+├── docker-compose.yml
+├── Dockerfile
+└── README.md
+```
+
+### Tests
+
+```bash
+# Backend
+pytest backend/tests -q
+
+# Frontend
+cd frontend
+npm run test
+npm run build
+```
+
+### CI
+
+Pipeline GitHub Actions dans `.github/workflows/ci.yml` :
+- déclenchée sur `push` et `pull_request` vers `master` ;
+- job backend : installation Python + `pytest backend/tests -q` ;
+- job frontend : `npm ci`, `npm run test`, puis `npm run build` ;
+- cache dépendances `pip`/`npm` et annulation des runs obsolètes.
+
+### Limites connues
+
+- Pas d'authentification.
+- Pas de persistance des conversations.
+- Couverture de tests concentrée sur le flux streaming et les services clés.
