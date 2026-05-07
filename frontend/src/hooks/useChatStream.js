@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { parseSseChunks } from "../lib/sse";
 
+const API_AUTH_TOKEN = import.meta.env.VITE_API_AUTH_TOKEN || "";
+
 const EMPTY_STATE = {
   thinking: "",
   toolCalls: [],
@@ -60,7 +62,10 @@ export function useChatStream() {
       // Le backend stream en SSE: on traite chaque evenement des reception.
       const response = await fetch("/api/chat/stream", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_AUTH_TOKEN}`
+        },
         body: JSON.stringify({
           question: askedQuestion,
           session_id: sessionId

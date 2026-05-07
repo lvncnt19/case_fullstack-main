@@ -30,6 +30,7 @@ from backend.services.events import (
 )
 
 SESSION_HISTORIES: dict[str, list[Any]] = {}
+MAX_TOOL_RESULT_CHARS = 2000
 
 
 def create_run_id() -> str:
@@ -131,10 +132,16 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
                     continue
 
                 content = str(result_part.content)
+                truncated = len(content) > MAX_TOOL_RESULT_CHARS
                 tool_name = result_part.tool_name or "tool_result"
                 yield sse_event(
                     "tool_result",
-                    {"run_id": run_id, "tool_name": tool_name, "content": content[:2000]},
+                    {
+                        "run_id": run_id,
+                        "tool_name": tool_name,
+                        "content": content[:MAX_TOOL_RESULT_CHARS],
+                        "truncated": truncated,
+                    },
                 )
 
                 saved_path = extract_saved_path(content)
