@@ -124,6 +124,16 @@ docker compose run --rm agent
 
 ### Lancement de l'application
 
+Configurer d'abord les variables dans le fichier `.env` a la racine du repo (un seul fichier pour backend + frontend) :
+
+```bash
+cp .env.example .env
+```
+
+Variables minimales a renseigner :
+- `OPENAI_API_KEY`
+- `API_AUTH_TOKEN`
+
 ```bash
 # Backend
 docker compose up api
@@ -139,6 +149,20 @@ npm run dev
 ```
 
 Frontend disponible sur `http://localhost:5173`.
+
+### Auth minimale (Bearer token)
+
+Le backend protège `POST /api/chat/stream` avec un token statique :
+- `API_AUTH_TOKEN` côté backend
+
+### CORS configurable
+
+Les origines autorisées sont configurées via `CORS_ORIGINS` (liste séparée par des virgules).
+Exemple :
+
+```bash
+CORS_ORIGINS=http://localhost:5173,https://mon-frontend.example.com
+```
 
 ### Architecture
 
@@ -198,6 +222,10 @@ Pipeline GitHub Actions dans `.github/workflows/ci.yml` :
 
 ### Limites connues
 
-- Pas d'authentification.
-- Pas de persistance des conversations.
-- Couverture de tests concentrée sur le flux streaming et les services clés.
+- Auth minimale basée sur token statique (pas de gestion utilisateur/session).
+- Stockage des sessions en mémoire (`SESSION_HISTORIES`) --> historique perdu au redémarrage.
+- Couverture de tests ciblée backend services + hook frontend --> pas de test E2E ni de test SSE bout-en-bout.
+- Historique chat non paginé (croissance mémoire possible sur longues sessions).
+- Les CSV sont rechargés à chaque run (pas de cache optimisé pour gros volumes).
+- Thème UI sombre uniquement (pas de mode clair).
+- Les tool results SSE sont tronqués à 2000 caractères (la troncature est signalée dans l'UI).

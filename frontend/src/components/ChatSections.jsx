@@ -83,6 +83,11 @@ export function ToolResultsSection({ toolResults }) {
           toolResults.map((res, idx) => (
             <article key={`${res.tool_name}-${idx}`} className="rounded-xl border border-slate-800 bg-slate-950 p-3">
               <strong className="text-sm text-emerald-300">{res.tool_name}</strong>
+              {res.truncated ? (
+                <p className="mt-2 rounded border border-amber-700/70 bg-amber-950/30 px-2 py-1 text-xs text-amber-200">
+                  Resultat tronque (limite backend a 2000 caracteres).
+                </p>
+              ) : null}
               <pre className="mt-2 overflow-auto text-xs text-slate-300">{res.content}</pre>
             </article>
           ))
