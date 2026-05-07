@@ -14,6 +14,7 @@ __pycache__/
 .venv/
 
 output/
+.DS_Store
 
 # Frontend
 frontend/node_modules/
