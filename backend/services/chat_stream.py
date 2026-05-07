@@ -36,6 +36,29 @@ def create_run_id() -> str:
     return str(uuid4())
 
 
+def normalize_stream_error(exc: Exception) -> str:
+    raw_message = str(exc).strip()
+    lower_message = raw_message.lower()
+
+    transient_markers = (
+        "connection error",
+        "incomplete chunked read",
+        "peer closed connection",
+        "timed out",
+        "timeout",
+        "connection reset",
+    )
+    if any(marker in lower_message for marker in transient_markers):
+        return (
+            "Provider temporarily unreachable (network/rate-limit). "
+            "Please retry your request in a few seconds."
+        )
+
+    if raw_message:
+        return raw_message
+    return "Unexpected backend error while streaming."
+
+
 async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[str, None]:
     # On recharge les CSV au debut de chaque run pour rester coherent avec l'etat disque.
     datasets, dataset_info = load_datasets()
@@ -136,7 +159,7 @@ async def stream_chat_events(req: ChatRequest, run_id: str) -> AsyncGenerator[st
         client_disconnected = True
         return
     except Exception as exc:
-        yield sse_event("error", {"run_id": run_id, "message": str(exc)})
+        yield sse_event("error", {"run_id": run_id, "message": normalize_stream_error(exc)})
     finally:
         if not client_disconnected:
             yield sse_event("done", {"run_id": run_id})

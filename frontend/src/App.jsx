@@ -13,6 +13,8 @@ import { useChatStream } from "./hooks/useChatStream";
 export default function App() {
   const {
     ask,
+    retryLastQuestion,
+    canRetry,
     loading,
     runStatus,
     chatHistory,
@@ -52,9 +54,9 @@ export default function App() {
               {statusLabel[runStatus]}
             </span>
           </div>
-          <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Case Fullstack - Data Assistant</h1>
+          <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Case Fullstack</h1>
           <p className="mt-2 text-sm text-slate-300">
-            Pose une question, observe le raisonnement, les outils appeles et les artefacts en temps reel.
+            Pose une question, observe le raisonnement, les outils appelés et les artefacts en temps reel.
           </p>
         </header>
 
@@ -64,7 +66,7 @@ export default function App() {
           <div className="space-y-6 xl:col-span-2">
             <FinalAnswerSection finalAnswer={finalAnswer} />
             <ArtifactsSection artifacts={artifacts} />
-            <ErrorSection error={error} />
+            <ErrorSection error={error} onRetry={retryLastQuestion} canRetry={canRetry} />
           </div>
           <div className="space-y-6">
             <ThinkingSection thinking={thinking} />
