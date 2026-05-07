@@ -10,7 +10,8 @@ from agent.tools.visualize import visualize
 
 def create_agent(dataset_info: str) -> Agent[AgentContext]:
     """Create the data analysis agent with query and visualization tools."""
-    model = os.getenv("MODEL", "anthropic:claude-haiku-4-5-20251001")
+    # Default to a free local model via Ollama (OpenAI-compatible API).
+    model = os.getenv("MODEL", "openai:llama3.2")
 
     agent: Agent[AgentContext] = Agent(
         model=model,
